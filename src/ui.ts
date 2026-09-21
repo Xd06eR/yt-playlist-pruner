@@ -24,8 +24,6 @@ export interface ToolbarHandle {
   clearRunning(): void
 }
 
-export const THROTTLE_MS = THROTTLE_BASE_MS
-
 /**
  * All DOM is built with createElement/textContent on purpose: the script runs
  * in the page world, where YouTube's Trusted Types CSP makes innerHTML throw.
@@ -108,7 +106,7 @@ export function mountToolbar(handlers: ToolbarHandlers): ToolbarHandle {
 
   let selected = 0
   let dryRun = false
-  let intervalMs = THROTTLE_MS
+  let intervalMs = THROTTLE_BASE_MS
 
   function renderRemoveLabel(): void {
     removeBtn.textContent = dryRun ? `Dry-run ${selected} video${selected === 1 ? '' : 's'}` : `Remove ${selected} video${selected === 1 ? '' : 's'}…`

@@ -1,6 +1,6 @@
 export interface PlaylistItem {
   videoId: string
-  /** Present on Watch Later items; required by edit_playlist for those. */
+  /** Present on Watch Later entries in the page data. */
   setVideoId?: string
   title: string
   channel: string

@@ -1,9 +1,8 @@
 /**
  * Removal transport: drives the page's own overflow menu instead of
- * reconstructing the edit_playlist request. The server once answered our
- * hand-built mutation with 200 and `loggedOut: true` — a silent no-op.
- * Clicking the page's real menu cannot be silently downgraded: the page signs
- * and sends its own request.
+ * reconstructing the edit_playlist request. A hand-built mutation can come
+ * back 200 with `loggedOut: true` — a silent no-op — while the page's own
+ * click cannot be silently downgraded: the page signs and sends its request.
  */
 
 /**

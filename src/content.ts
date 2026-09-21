@@ -17,7 +17,7 @@ let items: PlaylistItem[] = []
 /** Videos deleted this page session; rows may linger in the DOM, never re-admit them. */
 let removedIds = new Set<string>()
 let dryRun = false
-/** Seconds between removals; user-tunable, persisted in localStorage. */
+/** Milliseconds between removals; user-tunable, persisted in localStorage. */
 let intervalMs = loadIntervalMs()
 /** Random jitter around each interval, in percent; user-tunable, persisted. */
 let jitterPct = loadJitterPct()
@@ -214,8 +214,8 @@ function refresh(): void {
     const id = box.dataset.videoid
     if (!id) continue
     box.checked = selection.has(id)
-    // Rows we no longer know (already removed) leave the page: direct deletes
-    // bypass YouTube's own render pipeline, so hide them here.
+    // The page occasionally leaves a removed row in the DOM (stale render);
+    // rows whose video left the list are hidden here.
     box.closest(ROW_SELECTOR)?.classList.toggle('ypp-gone', !inItems.has(id))
   }
   toolbar?.setSelected(items.filter((i) => selection.has(i.videoId)).length)
