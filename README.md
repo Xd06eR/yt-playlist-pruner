@@ -2,7 +2,9 @@
 
 A Chrome extension (MV3, load-unpacked, no store) that adds batch selection to YouTube's own playlist pages: check videos by thumbnail, shift-click ranges, then remove them all in one throttled run. Works on your own playlists and Watch Later.
 
-![Playlist with the pruner's checkboxes and toolbar](screenshots/01-playlist-with-checkboxes.png)
+<p align="center">
+  <img src="screenshots/01-playlist-with-checkboxes.png" alt="Playlist with the pruner's checkboxes and toolbar">
+</p>
 
 ## Why
 
@@ -28,9 +30,13 @@ Open any of your playlists (`youtube.com/playlist?list=...`; Watch Later is `?li
 - **interval** and **± jitter** inputs: seconds between removals (1–10, default 2.5) and the random jitter around each interval in percent (0–50, default 20), both saved per browser, so the pace never reads metronomic unless you want it to
 - **Remove N videos…**: confirm dialog, then one removal at a time, driven through the page's own overflow menu at your interval, with progress, ETA, and **Cancel**. The selected rows must be rendered on the page: scroll through the playlist first if it is longer than what has loaded. Failed items are skipped and listed in the end-of-run report; a post-run re-fetch downgrades any removal the server did not actually apply.
 
-![Confirm dialog listing what will go](screenshots/02-confirm-dialog.png)
+<p align="center">
+  <img src="screenshots/02-confirm-dialog.png" alt="Confirm dialog listing what will go">
+</p>
 
-![End-of-run report](screenshots/03-removal-report.png)
+<p align="center">
+  <img src="screenshots/03-removal-report.png" alt="End-of-run report">
+</p>
 
 ## How it works
 
