@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "YT Playlist Pruner",
+  "version": "0.1.0",
+  "description": "Batch-select and remove videos from your YouTube playlists with checkboxes, range select and dry-run removal.",
+  "minimum_chrome_version": "111",
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/playlist*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle",
+      "world": "MAIN",
+      "all_frames": false
+    }
+  ]
+}

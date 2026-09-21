@@ -1,0 +1,167 @@
+.ypp-toolbar {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 9999;
+  width: 280px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--yt-spec-general-background-a, #212121);
+  color: var(--yt-spec-text-primary, #f1f1f1);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  font-family: 'Roboto', 'YouTube Noto', sans-serif;
+  font-size: 13px;
+}
+
+.ypp-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.ypp-status {
+  opacity: 0.7;
+  margin-bottom: 8px;
+}
+
+.ypp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.ypp-count {
+  font-weight: 600;
+  min-width: 80px;
+}
+
+.ypp-btn {
+  border: none;
+  border-radius: 16px;
+  padding: 6px 12px;
+  background: var(--yt-spec-badge-chip-background, rgba(255, 255, 255, 0.1));
+  color: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.ypp-btn:hover {
+  filter: brightness(1.2);
+}
+
+.ypp-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.ypp-remove {
+  background: var(--yt-spec-static-brand-red, #cc0000) !important;
+  color: #fff !important;
+}
+
+.ypp-dry {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.ypp-progress {
+  margin-top: 8px;
+}
+
+.ypp-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+
+.ypp-bar-fill {
+  height: 100%;
+  width: 0;
+  background: #3ea6ff;
+  transition: width 0.3s;
+}
+
+.ypp-progress-text {
+  flex: 1;
+}
+
+/* The row is the positioning context for its checkbox overlay. */
+ytd-playlist-video-renderer.ypp-row {
+  position: relative;
+}
+
+input.ypp-check {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 100;
+  width: 24px;
+  height: 24px;
+  accent-color: #3ea6ff;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.ypp-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.ypp-modal {
+  width: min(420px, 90vw);
+  padding: 20px;
+  border-radius: 12px;
+  background: var(--yt-spec-general-background-a, #212121);
+  color: var(--yt-spec-text-primary, #f1f1f1);
+  font-family: 'Roboto', 'YouTube Noto', sans-serif;
+  font-size: 14px;
+}
+
+.ypp-modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.ypp-modal p {
+  margin: 6px 0;
+  opacity: 0.85;
+}
+
+.ypp-modal-actions {
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.ypp-failed {
+  max-height: 180px;
+  overflow-y: auto;
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(255, 0, 0, 0.1);
+  font-size: 12px;
+}
+
+.ypp-confirm-list {
+  max-height: 160px;
+  overflow-y: auto;
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 12px;
+}
+
+.ypp-gone {
+  display: none !important;
+}
