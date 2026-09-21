@@ -1,6 +1,17 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { clampIntervalMs, loadIntervalMs, MAX_INTERVAL_MS, MIN_INTERVAL_MS, saveIntervalMs } from '../src/settings'
+import {
+  clampIntervalMs,
+  clampJitterPct,
+  DEFAULT_JITTER_PCT,
+  loadIntervalMs,
+  loadJitterPct,
+  MAX_INTERVAL_MS,
+  MAX_JITTER_PCT,
+  MIN_INTERVAL_MS,
+  saveIntervalMs,
+  saveJitterPct,
+} from '../src/settings'
 import { THROTTLE_BASE_MS } from '../src/runner'
 
 function stubStorage(initial: Record<string, string> = {}): { store: Map<string, string> } {
@@ -41,4 +52,21 @@ test('saving clamps and persists the raw string', () => {
   const { store } = stubStorage()
   saveIntervalMs(99999)
   assert.equal(store.get('yt-playlist-pruner:interval-ms'), '10000')
+})
+
+test('clamps jitter to 0-50 with a 20 default on garbage', () => {
+  assert.equal(clampJitterPct(20), 20)
+  assert.equal(clampJitterPct(0), 0)
+  assert.equal(clampJitterPct(90), MAX_JITTER_PCT)
+  assert.equal(clampJitterPct(-5), 0)
+  assert.equal(clampJitterPct(Number.NaN), DEFAULT_JITTER_PCT)
+})
+
+test('jitter persists and loads through storage', () => {
+  const { store } = stubStorage()
+  saveJitterPct(35)
+  assert.equal(store.get('yt-playlist-pruner:jitter-pct'), '35')
+  assert.equal(loadJitterPct(), 35)
+  stubStorage({ 'yt-playlist-pruner:jitter-pct': 'nope' })
+  assert.equal(loadJitterPct(), DEFAULT_JITTER_PCT)
 })

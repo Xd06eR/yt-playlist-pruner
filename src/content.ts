@@ -3,7 +3,7 @@ import { removeViaMenu, ROW_NOT_REMOVED } from './menu-drive'
 import { extractItems } from './parse-playlist'
 import { runRemoval } from './runner'
 import { SelectionModel } from './selection'
-import { clampIntervalMs, loadIntervalMs, saveIntervalMs } from './settings'
+import { clampIntervalMs, clampJitterPct, loadIntervalMs, loadJitterPct, saveIntervalMs, saveJitterPct } from './settings'
 import { reconcileRemovals } from './verify'
 import type { PlaylistItem } from './types'
 import { confirmDialog, makeCheckbox, mountToolbar, reportDialog } from './ui'
@@ -19,6 +19,8 @@ let removedIds = new Set<string>()
 let dryRun = false
 /** Seconds between removals; user-tunable, persisted in localStorage. */
 let intervalMs = loadIntervalMs()
+/** Random jitter around each interval, in percent; user-tunable, persisted. */
+let jitterPct = loadJitterPct()
 let running = false
 let cancelRequested = false
 let toolbar: ToolbarHandle | null = null
@@ -75,9 +77,15 @@ async function boot(): Promise<void> {
       saveIntervalMs(intervalMs)
       toolbar?.setIntervalMs(intervalMs)
     },
+    onJitterChange: (pct) => {
+      jitterPct = clampJitterPct(pct)
+      saveJitterPct(jitterPct)
+      toolbar?.setJitterPct(jitterPct)
+    },
   })
   toolbar.setSelected(selection.size)
   toolbar.setIntervalMs(intervalMs)
+  toolbar.setJitterPct(jitterPct)
   toolbar.setTotals(items.length)
   toolbar.setEnabled(Boolean(getClient() && getSapisidCookie()))
   if (!getSapisidCookie()) toolbar.setStatus('Sign in to YouTube to enable pruning')
@@ -252,8 +260,12 @@ async function run(): Promise<void> {
       })
     },
     throttleMs: intervalMs,
-    // Random ±20% on each interval: a metronome-exact pace reads automated.
-    sleep: (ms) => new Promise<void>((resolve) => setTimeout(resolve, ms * (0.8 + Math.random() * 0.4))),
+    // Each interval gets random ±jitter%: a metronome-exact pace reads automated.
+    sleep: (ms) => {
+      const spread = jitterPct / 100
+      const factor = 1 - spread + Math.random() * 2 * spread
+      return new Promise<void>((resolve) => setTimeout(resolve, ms * factor))
+    },
     shouldContinue: () => !cancelRequested,
   })
 

@@ -8,6 +8,7 @@ export interface ToolbarHandlers {
   onCancel(): void
   onDryRunChange(dryRun: boolean): void
   onIntervalChange(seconds: number): void
+  onJitterChange(pct: number): void
 }
 
 export interface ToolbarHandle {
@@ -18,6 +19,7 @@ export interface ToolbarHandle {
   setEnabled(enabled: boolean): void
   setDryRun(dryRun: boolean): void
   setIntervalMs(ms: number): void
+  setJitterPct(pct: number): void
   setRunning(done: number, total: number, cancelling: boolean): void
   clearRunning(): void
 }
@@ -77,7 +79,17 @@ export function mountToolbar(handlers: ToolbarHandlers): ToolbarHandle {
     const seconds = Number(intervalInput.value)
     if (Number.isFinite(seconds) && seconds > 0) handlers.onIntervalChange(seconds)
   })
-  intervalLabel.append(document.createTextNode('interval '), intervalInput, document.createTextNode(' s'))
+  const jitterInput = document.createElement('input')
+  jitterInput.type = 'number'
+  jitterInput.min = '0'
+  jitterInput.max = '50'
+  jitterInput.step = '5'
+  jitterInput.title = 'Random jitter around the interval, in percent (0 = exact pace)'
+  jitterInput.addEventListener('change', () => {
+    const pct = Number(jitterInput.value)
+    if (Number.isFinite(pct) && pct >= 0) handlers.onJitterChange(pct)
+  })
+  intervalLabel.append(document.createTextNode('interval '), intervalInput, document.createTextNode(' s  ± '), jitterInput, document.createTextNode(' %'))
   row3.append(intervalLabel)
   actions.append(row1, row2, row3)
 
@@ -128,6 +140,9 @@ export function mountToolbar(handlers: ToolbarHandlers): ToolbarHandle {
     setIntervalMs(ms) {
       intervalMs = ms
       intervalInput.value = String(ms / 1000)
+    },
+    setJitterPct(pct) {
+      jitterInput.value = String(pct)
     },
     setRunning(done, total, cancelling) {
       actions.hidden = true
