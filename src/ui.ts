@@ -199,6 +199,18 @@ export function reportDialog(report: RunReport, suggestReload: boolean): void {
     ? `${wouldRemove} video${wouldRemove === 1 ? '' : 's'} would be removed.`
     : `${removed} removed, ${failed.length} failed.`
   modal.append(heading, summary)
+  // The whole point of a dry run is seeing exactly what would go: every title,
+  // in a scrollable list.
+  if (report.dryRun && wouldRemove > 0) {
+    const list = el('div', 'ypp-confirm-list')
+    for (const result of report.results) {
+      if (result.status !== 'would-remove') continue
+      const line = el('div')
+      line.textContent = result.title
+      list.append(line)
+    }
+    modal.append(list)
+  }
   if (abortedText) {
     const abortedLine = el('p')
     abortedLine.textContent = abortedText
