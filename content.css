@@ -181,8 +181,7 @@ input.ypp-check {
 }
 
 /* One entry per line, separated, long titles truncated (full text on hover). */
-.ypp-confirm-list div,
-.ypp-failed div {
+.ypp-confirm-list div {
   padding: 3px 2px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   white-space: nowrap;
@@ -190,9 +189,33 @@ input.ypp-check {
   text-overflow: ellipsis;
 }
 
-.ypp-confirm-list div:last-child,
-.ypp-failed div:last-child {
+.ypp-confirm-list div:last-child {
   border-bottom: none;
+}
+
+/* Failed entries are two-line: truncated title, reason on its own wrappable line. */
+.ypp-failed-entry {
+  padding: 4px 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ypp-failed-entry:last-child {
+  border-bottom: none;
+}
+
+.ypp-failed-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.85;
+}
+
+.ypp-failed-reason {
+  margin-top: 2px;
+  color: #f28b82;
+  font-size: 11px;
+  line-height: 1.35;
+  overflow-wrap: break-word;
 }
 
 .ypp-gone {

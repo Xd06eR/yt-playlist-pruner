@@ -258,14 +258,14 @@ export function reportDialog(report: RunReport, suggestReload: boolean): void {
   if (failed.length > 0) {
     const list = el('div', 'ypp-failed')
     for (const f of failed) {
-      const line = el('div')
-      const title = el('span')
+      const entry = el('div', 'ypp-failed-entry')
+      const title = el('div', 'ypp-failed-title')
       title.textContent = f.title
-      const reason = el('span')
-      reason.textContent = ` — ${f.reason}`
-      line.append(title, reason)
-      line.title = `${f.title} — ${f.reason}`
-      list.append(line)
+      title.title = f.title
+      const reason = el('div', 'ypp-failed-reason')
+      reason.textContent = f.reason
+      entry.append(title, reason)
+      list.append(entry)
     }
     modal.append(list)
   }
