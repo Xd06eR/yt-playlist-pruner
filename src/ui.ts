@@ -140,6 +140,7 @@ export function confirmDialog(count: number, titles: string[]): Promise<boolean>
       for (const title of titles.slice(0, 10)) {
         const line = el('div')
         line.textContent = title
+        line.title = title
         list.append(line)
       }
       if (titles.length > 10) {
@@ -207,6 +208,7 @@ export function reportDialog(report: RunReport, suggestReload: boolean): void {
       if (result.status !== 'would-remove') continue
       const line = el('div')
       line.textContent = result.title
+      line.title = result.title
       list.append(line)
     }
     modal.append(list)
@@ -225,6 +227,7 @@ export function reportDialog(report: RunReport, suggestReload: boolean): void {
       const reason = el('span')
       reason.textContent = ` — ${f.reason}`
       line.append(title, reason)
+      line.title = `${f.title} — ${f.reason}`
       list.append(line)
     }
     modal.append(list)

@@ -162,6 +162,21 @@ input.ypp-check {
   font-size: 12px;
 }
 
+/* One entry per line, separated, long titles truncated (full text on hover). */
+.ypp-confirm-list div,
+.ypp-failed div {
+  padding: 3px 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ypp-confirm-list div:last-child,
+.ypp-failed div:last-child {
+  border-bottom: none;
+}
+
 .ypp-gone {
   display: none !important;
 }
