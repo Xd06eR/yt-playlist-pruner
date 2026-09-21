@@ -1,8 +1,9 @@
 import { fetchContinuation, getClient, getSapisidCookie, fetchPlaylistPage } from './innertube'
 import { removeViaMenu, ROW_NOT_REMOVED } from './menu-drive'
 import { extractItems } from './parse-playlist'
-import { runRemoval, THROTTLE_BASE_MS } from './runner'
+import { runRemoval } from './runner'
 import { SelectionModel } from './selection'
+import { clampIntervalMs, loadIntervalMs, saveIntervalMs } from './settings'
 import { reconcileRemovals } from './verify'
 import type { PlaylistItem } from './types'
 import { confirmDialog, makeCheckbox, mountToolbar, reportDialog } from './ui'
@@ -16,6 +17,8 @@ let items: PlaylistItem[] = []
 /** Videos deleted this page session; rows may linger in the DOM, never re-admit them. */
 let removedIds = new Set<string>()
 let dryRun = false
+/** Seconds between removals; user-tunable, persisted in localStorage. */
+let intervalMs = loadIntervalMs()
 let running = false
 let cancelRequested = false
 let toolbar: ToolbarHandle | null = null
@@ -67,8 +70,14 @@ async function boot(): Promise<void> {
     onDryRunChange: (on) => {
       dryRun = on
     },
+    onIntervalChange: (seconds) => {
+      intervalMs = clampIntervalMs(seconds * 1000)
+      saveIntervalMs(intervalMs)
+      toolbar?.setIntervalMs(intervalMs)
+    },
   })
   toolbar.setSelected(selection.size)
+  toolbar.setIntervalMs(intervalMs)
   toolbar.setTotals(items.length)
   toolbar.setEnabled(Boolean(getClient() && getSapisidCookie()))
   if (!getSapisidCookie()) toolbar.setStatus('Sign in to YouTube to enable pruning')
@@ -242,7 +251,7 @@ async function run(): Promise<void> {
         toolbar?.setRunning(done, chosen.length, cancelRequested)
       })
     },
-    throttleMs: THROTTLE_BASE_MS,
+    throttleMs: intervalMs,
     // Random ±20% on each interval: a metronome-exact pace reads automated.
     sleep: (ms) => new Promise<void>((resolve) => setTimeout(resolve, ms * (0.8 + Math.random() * 0.4))),
     shouldContinue: () => !cancelRequested,

@@ -23,7 +23,8 @@ Open any of your playlists (`youtube.com/playlist?list=...`; Watch Later is `?li
 
 - Click checkboxes to select; **shift-click** to select/deselect a range; **Select all** / **Clear** for everything
 - **dry-run** toggle: previews exactly what would go, touches nothing
-- **Remove N videos…**: confirm dialog, then one removal at a time, driven through the page's own overflow menu and spaced roughly 2.5 seconds apart with random variation (a human pace, not a metronome), with progress, ETA, and **Cancel**. The selected rows must be rendered on the page: scroll through the playlist first if it is longer than what has loaded. Failed items are skipped and listed in the end-of-run report; a post-run re-fetch downgrades any removal the server did not actually apply.
+- **interval** input: seconds between removals (1–10, default 2.5), saved per browser; each interval also gets random ±20% so the pace never reads metronomic
+- **Remove N videos…**: confirm dialog, then one removal at a time, driven through the page's own overflow menu at your interval, with progress, ETA, and **Cancel**. The selected rows must be rendered on the page: scroll through the playlist first if it is longer than what has loaded. Failed items are skipped and listed in the end-of-run report; a post-run re-fetch downgrades any removal the server did not actually apply.
 
 ## How it works
 
@@ -67,6 +68,7 @@ Module map — the engine is pure and host-agnostic (no `chrome.*` anywhere), so
 | `src/runner.ts` | throttled delete loop, dry-run, per-item failure, auth/rate/user aborts | unit |
 | `src/sapisidhash.ts` | SAPISIDHASH Authorization header | unit |
 | `src/verify.ts` | post-run reconciliation of removal results against the server | unit |
+| `src/settings.ts` | removal-interval setting, clamped and persisted in localStorage | unit |
 | `src/menu-drive.ts` | drives the page's own overflow menu; remove-item predicate | unit + manual |
 | `src/innertube.ts` | InnerTube read transport: context from ytcfg, browse + continuations | unit + manual |
 | `src/ui.ts`, `src/content.ts` | toolbar, dialogs, row checkboxes, page lifecycle | manual (in-browser) |

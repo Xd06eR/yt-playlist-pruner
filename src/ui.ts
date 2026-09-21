@@ -7,6 +7,7 @@ export interface ToolbarHandlers {
   onRemove(): void
   onCancel(): void
   onDryRunChange(dryRun: boolean): void
+  onIntervalChange(seconds: number): void
 }
 
 export interface ToolbarHandle {
@@ -16,6 +17,7 @@ export interface ToolbarHandle {
   setStatus(text: string): void
   setEnabled(enabled: boolean): void
   setDryRun(dryRun: boolean): void
+  setIntervalMs(ms: number): void
   setRunning(done: number, total: number, cancelling: boolean): void
   clearRunning(): void
 }
@@ -62,7 +64,22 @@ export function mountToolbar(handlers: ToolbarHandlers): ToolbarHandle {
   dryLabel.append(dryInput, document.createTextNode(' dry-run'))
   const removeBtn = button('', handlers.onRemove, 'ypp-remove')
   row2.append(dryLabel, removeBtn)
-  actions.append(row1, row2)
+
+  const row3 = el('div', 'ypp-row')
+  const intervalLabel = el('label', 'ypp-interval')
+  const intervalInput = document.createElement('input')
+  intervalInput.type = 'number'
+  intervalInput.min = '1'
+  intervalInput.max = '10'
+  intervalInput.step = '0.5'
+  intervalInput.title = 'Seconds between removals (risk is yours: slower reads more human)'
+  intervalInput.addEventListener('change', () => {
+    const seconds = Number(intervalInput.value)
+    if (Number.isFinite(seconds) && seconds > 0) handlers.onIntervalChange(seconds)
+  })
+  intervalLabel.append(document.createTextNode('interval '), intervalInput, document.createTextNode(' s'))
+  row3.append(intervalLabel)
+  actions.append(row1, row2, row3)
 
   const progress = el('div', 'ypp-progress')
   progress.hidden = true
@@ -79,6 +96,7 @@ export function mountToolbar(handlers: ToolbarHandlers): ToolbarHandle {
 
   let selected = 0
   let dryRun = false
+  let intervalMs = THROTTLE_MS
 
   function renderRemoveLabel(): void {
     removeBtn.textContent = dryRun ? `Dry-run ${selected} video${selected === 1 ? '' : 's'}` : `Remove ${selected} video${selected === 1 ? '' : 's'}…`
@@ -107,11 +125,15 @@ export function mountToolbar(handlers: ToolbarHandlers): ToolbarHandle {
       dryInput.checked = on
       renderRemoveLabel()
     },
+    setIntervalMs(ms) {
+      intervalMs = ms
+      intervalInput.value = String(ms / 1000)
+    },
     setRunning(done, total, cancelling) {
       actions.hidden = true
       progress.hidden = false
       const remaining = Math.max(total - done, 0)
-      const eta = Math.ceil((remaining * THROTTLE_MS) / 1000)
+      const eta = Math.ceil((remaining * intervalMs) / 1000)
       const etaText = eta < 90 ? `${eta}s` : `${Math.floor(eta / 60)}m ${eta % 60}s`
       progressText.textContent = `${done}/${total}${cancelling ? ' · cancelling…' : ` · ~${etaText} left`}`
       barFill.style.width = `${total === 0 ? 0 : Math.round((done / total) * 100)}%`
