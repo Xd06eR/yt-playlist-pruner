@@ -72,11 +72,20 @@ function closeMenus(): void {
   document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
 }
 
+/** One bounded retry for pre-click menu misses. */
+async function retryAfterMiss(row: HTMLElement, attempt: number): Promise<void> {
+  await new Promise((resolve) => setTimeout(resolve, 500))
+  return removeViaMenu(row, attempt + 1)
+}
+
 /** Failure reason when the menu click landed but the row lingered in the DOM. */
 export const ROW_NOT_REMOVED = 'the page did not remove the row after the menu action'
 
+/** Failure reason when no removable item appeared before the poll deadline. */
+export const NO_REMOVE_ACTION = 'no remove action in the overflow menu'
+
 /** Removes one video by clicking through the page's own row overflow menu. */
-export async function removeViaMenu(row: HTMLElement): Promise<void> {
+export async function removeViaMenu(row: HTMLElement, attempt = 0): Promise<void> {
   row.scrollIntoView({ block: 'center' })
   row.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }))
 
@@ -102,7 +111,8 @@ export async function removeViaMenu(row: HTMLElement): Promise<void> {
         .join(' | '),
     )
     closeMenus()
-    throw new Error('no remove action in the overflow menu')
+    if (attempt === 0) return retryAfterMiss(row, attempt)
+    throw new Error(NO_REMOVE_ACTION)
   }
   target.click()
 
