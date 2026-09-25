@@ -8,6 +8,9 @@ import type { PlaylistItem } from './types'
 import { confirmDialog, makeCheckbox, mountToolbar, reportDialog } from './ui'
 import type { ToolbarHandle } from './ui'
 
+/** Delayed re-passes after boot, catching rows whose data binds late. */
+const SETTLE_PASS_DELAYS_MS = [500, 1500, 3000]
+
 let items: PlaylistItem[] = []
 /** Videos deleted this page session; rows may linger in the DOM, never re-admit them. */
 let removedIds = new Set<string>()
@@ -106,14 +109,19 @@ function boot(): void {
   attachCheckboxes()
   observeRows()
   if (pageKind === 'lockup') addRepositionListeners()
+  // Rows stamp before their data binds; a pass that catches that instant
+  // undercounts until the next mutation. A few delayed passes settle it.
+  for (const ms of SETTLE_PASS_DELAYS_MS) {
+    setTimeout(() => {
+      if (initializedFor === id) attachCheckboxes()
+    }, ms)
+  }
 }
 
 /** Layout, not URL, decides: YouTube has served Liked Videos both ways. */
 function detectPageKind(): 'classic' | 'lockup' {
-  // Classic rows win when present: classic pages embed lockup-shaped
-  // recommendation shelves below the list, which must not flip the page kind.
-  if (document.querySelector('ytd-playlist-video-renderer')) return 'classic'
-  if (document.querySelector('yt-lockup-view-model')) return 'lockup'
+  if (document.querySelector(CLASSIC_ROWS)) return 'classic'
+  if (document.querySelector(LOCKUP_ROWS)) return 'lockup'
   // Cold loads can run before the grid stamps its rows; the page data cannot
   // lag: lockup items carry the serialized menu the classic family lacks.
   return extractItems(window.ytInitialData).items.some((item) => item.unlikeIndex !== undefined) ? 'lockup' : 'classic'
@@ -155,8 +163,17 @@ function observeRows(): void {
   observer.observe(document.body, { childList: true, subtree: true })
 }
 
+/**
+ * Row selectors are scoped to the playlist's own surface on both layouts:
+ * classic lists live inside ytd-playlist-video-list-renderer, the lockup grid
+ * inside yt-item-section-renderer — each page's recommendation shelves (the
+ * other layout's rows) sit in different containers and must never join.
+ */
+const CLASSIC_ROWS = 'ytd-playlist-video-list-renderer ytd-playlist-video-renderer'
+const LOCKUP_ROWS = 'yt-item-section-renderer yt-lockup-view-model'
+
 function rowSelector(): string {
-  return pageKind === 'lockup' ? 'yt-lockup-view-model' : 'ytd-playlist-video-renderer'
+  return pageKind === 'lockup' ? LOCKUP_ROWS : CLASSIC_ROWS
 }
 
 function addRepositionListeners(): void {
@@ -226,15 +243,14 @@ function checkboxPlacement(row: HTMLElement): { left: number; top: number } {
 
 function attachCheckboxes(): void {
   // SPA entry can boot against the previous page's frozen data and lock the
-  // wrong kind; rendered rows are the ground truth, so a contradiction flips
-  // it and re-boots (terminates: the re-boot matches the rows it finds).
-  if (document.querySelectorAll(rowSelector()).length === 0) {
-    const other = pageKind === 'lockup' ? 'ytd-playlist-video-renderer' : 'yt-lockup-view-model'
-    if (document.querySelectorAll(other).length > 0) {
-      teardown()
-      boot()
-      return
-    }
+  // wrong kind. Rendered rows are the ground truth, and majority rules: a
+  // page's own rows dwarf the other layout's stray shelf items, so the count
+  // comparison both detects the wrong lock and never thrashes on shelves.
+  const otherSelector = pageKind === 'lockup' ? CLASSIC_ROWS : LOCKUP_ROWS
+  if (document.querySelectorAll(otherSelector).length > document.querySelectorAll(rowSelector()).length) {
+    teardown()
+    boot()
+    return
   }
 
   const known = new Set(items.map((i) => i.videoId))
@@ -284,20 +300,17 @@ function attachCheckboxes(): void {
     }
   }
 
-  // Late-discovered rows (unavailable videos, scroll batches) would otherwise
-  // pile up at the end of `items` while sitting mid-list on screen; shift
-  // ranges slice `items` order, so it must match the DOM the user sees.
-  // Items without a rendered row keep their tail positions.
+  // `items` is exactly what the current DOM shows, in its order: shift ranges
+  // slice it, so it must match the rows the user sees, and anything that fell
+  // off the DOM (a left playlist's stragglers mid-transition) must leave the
+  // universe with it.
   const uniqueDomIds = [...new Set(domIds)]
   if (uniqueDomIds.length > 0) {
-    const domSet = new Set(uniqueDomIds)
     const byId = new Map(items.map((item) => [item.videoId, item]))
-    const ordered = uniqueDomIds.flatMap((id) => {
+    items = uniqueDomIds.flatMap((id) => {
       const item = byId.get(id)
       return item ? [item] : []
     })
-    for (const item of items) if (!domSet.has(item.videoId)) ordered.push(item)
-    items = ordered
     selection.reset(items.map((i) => i.videoId))
   }
 
