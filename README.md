@@ -8,7 +8,7 @@ A Chrome extension (MV3, load-unpacked, no store) that adds batch selection to Y
 
 ## Why
 
-YouTube's UI only removes playlist videos one at a time. The official Data API cannot touch Watch Later at all, and caps writes at 200/day. This extension talks to the same internal API the YouTube page itself uses, from your own signed-in session, so it has neither limit.
+YouTube's UI only removes playlist videos one at a time. The official Data API cannot touch Watch Later at all, and caps writes at 200/day. This extension drives the page's own removal actions from your signed-in session, so it has neither limit.
 
 ## Install
 
@@ -70,7 +70,7 @@ Removals deliberately drive the page's own menu instead of replaying the `edit_p
 ## Development
 
 ```bash
-npm test        # unit tests (pure logic: parsing, selection, runner, SAPISIDHASH)
+npm test        # unit tests (pure logic: parsing, selection, runner, menu picking)
 npm run typecheck
 npm run build   # bundles src/content.ts → dist/content.js
 ```
@@ -82,9 +82,7 @@ Module map — the engine is pure and host-agnostic (no `chrome.*` anywhere), so
 | `src/parse-playlist.ts` | recursive walk of ytInitialData / continuation blobs → items + next token, classic and lockup layouts | unit |
 | `src/selection.ts` | selection state keyed by videoId, shift-range semantics | unit |
 | `src/runner.ts` | throttled delete loop, dry-run, per-item failure, auth/rate/user aborts | unit |
-| `src/sapisidhash.ts` | SAPISIDHASH Authorization header | unit |
-| `src/verify.ts` | post-run reconciliation of removal results against the server | unit |
 | `src/settings.ts` | removal-interval and jitter settings, clamped and persisted in localStorage | unit |
 | `src/menu-drive.ts` | drives the page's own overflow menu; remove-item predicate and index picker | unit + manual |
-| `src/innertube.ts` | InnerTube read transport: context from ytcfg, browse + continuations | unit + manual |
+| `src/innertube.ts` | page-context glue: ytcfg readiness, sign-in cookie | manual (in-browser) |
 | `src/ui.ts`, `src/content.ts` | toolbar, dialogs, row checkboxes and the lockup overlay layer, page lifecycle | manual (in-browser) |

@@ -1,18 +1,13 @@
-import { fetchContinuation, getClient, getSapisidCookie, fetchPlaylistPage } from './innertube'
-import { removeViaMenu, ROW_NOT_REMOVED } from './menu-drive'
+import { getSapisidCookie, pageReady } from './innertube'
+import { removeViaMenu } from './menu-drive'
 import { extractItems } from './parse-playlist'
 import { runRemoval } from './runner'
 import { SelectionModel } from './selection'
 import { clampIntervalMs, clampJitterPct, loadIntervalMs, loadJitterPct, saveIntervalMs, saveJitterPct } from './settings'
-import { reconcileRemovals } from './verify'
 import type { PlaylistItem } from './types'
 import { confirmDialog, makeCheckbox, mountToolbar, reportDialog } from './ui'
 import type { ToolbarHandle } from './ui'
 
-/** Guard against runaway loops if YouTube keeps returning tokens. */
-const MAX_CONTINUATIONS = 200
-
-let playlistId: string | null = null
 let items: PlaylistItem[] = []
 /** Videos deleted this page session; rows may linger in the DOM, never re-admit them. */
 let removedIds = new Set<string>()
@@ -41,13 +36,17 @@ const rowByVideoId = new Map<string, HTMLElement>()
 
 function main(): void {
   const safeBoot = (): void => {
-    boot().catch((error: unknown) => console.error('[yt-playlist-pruner] init failed:', error))
+    try {
+      boot()
+    } catch (error: unknown) {
+      console.error('[yt-playlist-pruner] init failed:', error)
+    }
   }
   window.addEventListener('yt-navigate-finish', safeBoot)
   safeBoot()
 }
 
-async function boot(): Promise<void> {
+function boot(): void {
   const id = new URLSearchParams(location.search).get('list')
   if (!id) {
     teardown() // navigated off playlist pages: no toolbar on watch pages
@@ -56,12 +55,9 @@ async function boot(): Promise<void> {
   if (id === initializedFor) return
   teardown()
   initializedFor = id
-  playlistId = id
   removedIds = new Set()
   pageKind = detectPageKind()
-  const loaded = await loadItems()
-  if (initializedFor !== id) return // a newer navigation superseded this boot
-  items = loaded
+  items = loadItems()
   selection.reset(items.map((i) => i.videoId))
 
   toolbar = mountToolbar({
@@ -95,7 +91,7 @@ async function boot(): Promise<void> {
   toolbar.setIntervalMs(intervalMs)
   toolbar.setJitterPct(jitterPct)
   toolbar.setTotals(items.length)
-  toolbar.setEnabled(Boolean(getClient() && getSapisidCookie()))
+  toolbar.setEnabled(Boolean(pageReady() && getSapisidCookie()))
   if (!getSapisidCookie()) toolbar.setStatus('Sign in to YouTube to enable pruning')
 
   attachCheckboxes()
@@ -126,52 +122,13 @@ function teardown(): void {
   overlayBoxes.clear()
 }
 
-/** Initial page state first, then every continuation until the list is exhausted. */
-async function loadItems(): Promise<PlaylistItem[]> {
-  const collected: PlaylistItem[] = []
-  const seen = new Set<string>()
-  const push = (list: PlaylistItem[]): void => {
-    for (const item of list) {
-      if (!seen.has(item.videoId)) {
-        seen.add(item.videoId)
-        collected.push(item)
-      }
-    }
-  }
-
-  const first = extractItems(window.ytInitialData)
-  push(first.items)
-
-  let token = first.continuationToken
-  const client = getClient()
-
-  // The lockup layout ships no continuation token and its browse endpoint
-  // returns an anonymous shell, so rows scrolled into view are the only
-  // enumeration source there (the mutation observer picks them up).
-  if (pageKind === 'classic') {
-    // Pages that ship an empty initial state are enumerated through InnerTube's
-    // browse endpoint instead.
-    if (collected.length === 0 && !token && client && playlistId) {
-      try {
-        const browsed = await fetchPlaylistPage(client, playlistId)
-        push(browsed.items)
-        token = browsed.continuationToken
-      } catch {
-        // leave the list to the page's own lazy-load discovery
-      }
-    }
-  }
-
-  for (let page = 0; token && client && page < MAX_CONTINUATIONS; page++) {
-    try {
-      const next = await fetchContinuation(client, token)
-      push(next.items)
-      token = next.continuationToken
-    } catch {
-      break // partial list is still usable; the page itself lazy-loads the rest on scroll
-    }
-  }
-  return collected
+/**
+ * The page's initial state is the whole enumerable data source: the server
+ * answers self-built reads with an anonymous shell, so anything beyond the
+ * first batch joins only as rendered rows, through scroll discovery.
+ */
+function loadItems(): PlaylistItem[] {
+  return extractItems(window.ytInitialData).items
 }
 
 function observeRows(): void {
@@ -407,7 +364,6 @@ async function run(): Promise<void> {
   toolbar.setRunning(0, chosen.length, false)
   overlay?.classList.add('ypp-hidden') // checkboxes must not float over open menus
 
-  const client = getClient()
   const report = await runRemoval(chosen, {
     dryRun,
     removeVideo: (item) => {
@@ -432,23 +388,11 @@ async function run(): Promise<void> {
   toolbar.clearRunning()
   overlay?.classList.remove('ypp-hidden')
 
-  // A success claim is not proof, and a lingering row is not proof of failure:
-  // one reconciliation pass sorts both directions before the report speaks.
-  // The lockup list skips it: its grid keeps unliked cards on screen, so the
-  // page's completed removelike request (see removeViaMenu) is the receipt.
+  // Receipts are per item — the page drops the row, or on the lockup layout
+  // the page's own request completes — and no post-run server re-check exists:
+  // the browse family answers anonymous shells, so a lingering card stays
+  // visible until reload.
   if (!report.dryRun && report.aborted === null) {
-    if (pageKind === 'classic' && client && playlistId) {
-      const claimed = report.results.some((r) => r.status === 'removed')
-      const lingering = report.results.some((r) => r.status === 'failed' && r.reason === ROW_NOT_REMOVED)
-      if (claimed || lingering) {
-        try {
-          const page = await fetchPlaylistPage(client, playlistId)
-          report.results = reconcileRemovals(report.results, new Set(page.items.map((i) => i.videoId)))
-        } catch {
-          // verification fetch failed: keep results as reported
-        }
-      }
-    }
     const verified = new Set(report.results.filter((r) => r.status === 'removed').map((r) => r.videoId))
     for (const id of verified) removedIds.add(id)
     items = items.filter((i) => !verified.has(i.videoId))

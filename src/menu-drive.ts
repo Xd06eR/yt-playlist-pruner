@@ -1,3 +1,5 @@
+import { AbortRun } from './runner'
+
 /**
  * Removal transport: drives the page's own overflow menu instead of
  * reconstructing the edit_playlist request. A hand-built mutation can come
@@ -197,6 +199,9 @@ export async function removeViaMenu(
     performance.setResourceTimingBufferSize?.(10000)
     const seen = await waitFor(() => findUnlikeRequest(performance.getEntriesByType('resource'), requestMark), 5000)
     if (!seen) throw new Error(REQUEST_NOT_SEEN)
+    // A dead session or a rate limit only deepens with retries: stop the run.
+    if (seen.status === 401 || seen.status === 403) throw new AbortRun('auth')
+    if (seen.status === 429) throw new AbortRun('rate')
     if (typeof seen.status === 'number' && seen.status >= 400) {
       throw new Error(`removal request failed (HTTP ${seen.status})`)
     }

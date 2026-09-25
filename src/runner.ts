@@ -1,6 +1,6 @@
 import type { ItemResult, PlaylistItem, RunReport } from './types'
 
-/** Thrown by the transport when the run must stop: 401/403 (signed out) or 429 (rate limit). */
+/** Thrown from a removal's receipt when the run must stop: 401/403 (signed out) or 429 (rate limit). */
 export class AbortRun extends Error {
   constructor(public readonly kind: 'auth' | 'rate') {
     super(`aborted: ${kind}`)
