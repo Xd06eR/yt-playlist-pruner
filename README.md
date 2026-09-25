@@ -12,6 +12,10 @@ YouTube's UI only removes playlist videos one at a time. The official Data API c
 
 ## Install
 
+**From a release** (no build tools): download the latest `yt-playlist-pruner-*.zip` from [releases](https://github.com/Xd06eR/yt-playlist-pruner/releases/latest), unzip it, then continue at step 1 below.
+
+**From source**:
+
 ```bash
 npm install
 npm run build
@@ -19,7 +23,7 @@ npm run build
 
 1. Open `chrome://extensions`
 2. Enable **Developer mode** (top right)
-3. **Load unpacked** → select this folder's `dist/`
+3. **Load unpacked** → select the unzipped folder (or, from source, this folder's `dist/`)
 
 ## Use
 

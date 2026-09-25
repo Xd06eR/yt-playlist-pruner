@@ -1,6 +1,6 @@
 {
   "name": "yt-playlist-pruner",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Batch-select and remove videos from your YouTube playlists (unpacked MV3 Chrome extension).",
