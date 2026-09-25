@@ -21,6 +21,8 @@ let cancelRequested = false
 let toolbar: ToolbarHandle | null = null
 let observer: MutationObserver | null = null
 let initializedFor: string | null = null
+/** Only the hard-load boot may seed from ytInitialData; see boot(). */
+let seededInitialData = false
 /** Page layout this boot serves; decided by rendered rows, not the URL. */
 let pageKind: 'classic' | 'lockup' = 'classic'
 /** Lockup-only: the page-level layer checkboxes float in, clear of card DOM. */
@@ -47,7 +49,9 @@ function main(): void {
 }
 
 function boot(): void {
-  const id = new URLSearchParams(location.search).get('list')
+  // Watch-page URLs keep ?list= (player context), so the param alone would
+  // keep the toolbar alive off-playlist; the path is the gate.
+  const id = location.pathname === '/playlist' ? new URLSearchParams(location.search).get('list') : null
   if (!id) {
     teardown() // navigated off playlist pages: no toolbar on watch pages
     return
@@ -57,7 +61,12 @@ function boot(): void {
   initializedFor = id
   removedIds = new Set()
   pageKind = detectPageKind()
-  items = loadItems()
+  // ytInitialData is frozen at hard load: after a SPA navigation it still
+  // describes the previous page, so seeding from it would leak one
+  // playlist's items (and selections, and titles) into the next. Only the
+  // first boot may seed; every later playlist builds from its rendered rows.
+  items = seededInitialData ? [] : loadItems()
+  seededInitialData = true
   selection.reset(items.map((i) => i.videoId))
 
   toolbar = mountToolbar({
@@ -132,7 +141,8 @@ function loadItems(): PlaylistItem[] {
 }
 
 function observeRows(): void {
-  const container = document.querySelector('ytd-playlist-video-list-renderer') ?? document.body
+  // Body, never a page container: SPA navigation replaces those elements, and
+  // an observer bound to a swapped-out node goes quietly deaf.
   let scheduled = false
   observer = new MutationObserver(() => {
     if (scheduled) return
@@ -142,7 +152,7 @@ function observeRows(): void {
       attachCheckboxes()
     }, 100)
   })
-  observer.observe(container, { childList: true, subtree: true })
+  observer.observe(document.body, { childList: true, subtree: true })
 }
 
 function rowSelector(): string {
@@ -215,6 +225,18 @@ function checkboxPlacement(row: HTMLElement): { left: number; top: number } {
 }
 
 function attachCheckboxes(): void {
+  // SPA entry can boot against the previous page's frozen data and lock the
+  // wrong kind; rendered rows are the ground truth, so a contradiction flips
+  // it and re-boots (terminates: the re-boot matches the rows it finds).
+  if (document.querySelectorAll(rowSelector()).length === 0) {
+    const other = pageKind === 'lockup' ? 'ytd-playlist-video-renderer' : 'yt-lockup-view-model'
+    if (document.querySelectorAll(other).length > 0) {
+      teardown()
+      boot()
+      return
+    }
+  }
+
   const known = new Set(items.map((i) => i.videoId))
   const rows = [...document.querySelectorAll<HTMLElement>(rowSelector())]
   const domIds: string[] = []

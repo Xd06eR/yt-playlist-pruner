@@ -24,6 +24,7 @@ The lockup (Liked Videos) menu cannot be driven the classic way: its rendered bu
 - Rows can go stale mid-run when YouTube re-renders the list (measured: ~2.5% of items): the menu then misses twice and the item fails honestly. Remedy: reload, re-select, re-run. Known open issue; the `[yt-playlist-pruner] menu items seen:` console line is the diagnostic (empty = menu never opened = stale row reference; populated = menu lacks the remove item).
 - Liked Videos keeps unliked cards on screen until reload and gives no readable per-action confirmation (its toast lives in a closed shadow root); the report counts removals the page's own request completed and says so.
 - YouTube's playlist list recycles row elements when rows are inserted (the "show unavailable videos" toggle): per-row state must re-verify its binding on every mutation pass. A checkbox bound once keeps its element's previous occupant's id, and DOM-position mapping is wrong for the same reason — bind to the row's own data (`rowVideoId`), never to an index. `items` order must also track the DOM: shift ranges slice it, so without order tracking a shift across a late-discovered row sweeps most of the list.
+- `window.ytInitialData` is frozen at hard load: after any SPA navigation it still describes the previous page. Never seed items or detect the layout from it past a page session's first boot — rendered rows are the truth (`boot`'s seed flag, `attachCheckboxes`' kind flip).
 - `dist/` is gitignored: build (`npm run build`) before any load-unpacked testing.
 
 ## Process

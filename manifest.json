@@ -6,7 +6,7 @@
   "minimum_chrome_version": "111",
   "content_scripts": [
     {
-      "matches": ["https://www.youtube.com/playlist*"],
+      "matches": ["https://www.youtube.com/*"],
       "js": ["content.js"],
       "css": ["content.css"],
       "run_at": "document_idle",
