@@ -216,21 +216,22 @@ function checkboxPlacement(row: HTMLElement): { left: number; top: number } {
 
 function attachCheckboxes(): void {
   const known = new Set(items.map((i) => i.videoId))
-  const rows = document.querySelectorAll<HTMLElement>(rowSelector())
-  rows.forEach((row, index) => {
-    const id = rowVideoId(row, index)
-    if (!id || removedIds.has(id)) return
+  const rows = [...document.querySelectorAll<HTMLElement>(rowSelector())]
+  const domIds: string[] = []
+  for (const row of rows) {
+    const id = rowVideoId(row)
+    if (!id || removedIds.has(id)) continue
 
-    // Rows the initial load missed (scroll-loaded lockups, a failed fetch)
-    // join the selectable universe here, in DOM order.
+    // Rows the initial load missed (unavailable videos toggled on,
+    // scroll-loaded lockups) join the selectable universe here.
     if (!known.has(id)) {
       const found = itemFromRow(row, id)
-      if (!found) return // nothing trustworthy to select against
+      if (!found) continue // nothing trustworthy to select against
       items.push(found)
       known.add(id)
-      selection.reset(items.map((i) => i.videoId))
     }
 
+    domIds.push(id)
     rowByVideoId.set(id, row)
 
     let box = checkboxFor(id, row)
@@ -242,14 +243,42 @@ function attachCheckboxes(): void {
         // preventDefault, so the checkbox still toggles natively.
         event.stopPropagation()
         const input = event.currentTarget as HTMLInputElement
-        selection.onCheckbox(id, input.checked, event.shiftKey)
+        // dataset, not a captured id: the box may have been rebound since.
+        const currentId = input.dataset.videoid
+        if (currentId) selection.onCheckbox(currentId, input.checked, event.shiftKey)
         refresh()
       })
       mountCheckbox(box, row, id)
     } else {
+      // dom-repeat recycles row elements when the page inserts rows (the
+      // unavailable-videos toggle): a box can outlive its element's binding
+      // to a video, so re-check the binding on every pass.
+      const staleId = box.dataset.videoid
+      if (staleId !== id) {
+        if (staleId && rowByVideoId.get(staleId) === row) rowByVideoId.delete(staleId)
+        box.dataset.videoid = id
+      }
       box.checked = selection.has(id)
     }
-  })
+  }
+
+  // Late-discovered rows (unavailable videos, scroll batches) would otherwise
+  // pile up at the end of `items` while sitting mid-list on screen; shift
+  // ranges slice `items` order, so it must match the DOM the user sees.
+  // Items without a rendered row keep their tail positions.
+  const uniqueDomIds = [...new Set(domIds)]
+  if (uniqueDomIds.length > 0) {
+    const domSet = new Set(uniqueDomIds)
+    const byId = new Map(items.map((item) => [item.videoId, item]))
+    const ordered = uniqueDomIds.flatMap((id) => {
+      const item = byId.get(id)
+      return item ? [item] : []
+    })
+    for (const item of items) if (!domSet.has(item.videoId)) ordered.push(item)
+    items = ordered
+    selection.reset(items.map((i) => i.videoId))
+  }
+
   toolbar?.setTotals(items.length)
   if (pageKind === 'lockup') scheduleReposition()
 }
@@ -310,15 +339,21 @@ function lockupItemFromRow(row: HTMLElement, videoId: string): PlaylistItem | nu
   }
 }
 
-/** Prefer the row's own identity (renderer data, content-id class); then positional mapping. */
-function rowVideoId(row: HTMLElement, index: number): string | null {
+/**
+ * The row's own identity only — renderer data on classic rows, the content-id
+ * class on lockups. Never map by DOM position: the page inserts rows (the
+ * "show unavailable videos" toggle) whose data binds after insertion, and a
+ * positional lookup at that instant binds a neighbor's id to the checkbox
+ * forever. A row not yet carrying its id simply joins on a later pass.
+ */
+function rowVideoId(row: HTMLElement): string | null {
   if (pageKind === 'lockup') {
     const host = (row.querySelector('.ytLockupViewModelHost') ?? row) as HTMLElement
     const match = host.className.match(/content-id-([\w-]+)/) ?? row.className.match(/content-id-([\w-]+)/)
-    if (match) return match[1] ?? null
+    return match?.[1] ?? null
   }
   const data = (row as unknown as { data?: { videoId?: string } }).data
-  return data?.videoId ?? items[index]?.videoId ?? null
+  return data?.videoId ?? null
 }
 
 function refresh(): void {

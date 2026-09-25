@@ -61,7 +61,7 @@ Removals deliberately drive the page's own menu instead of replaying the `edit_p
 
 ## Risks and limitations
 
-- **Unofficial surface.** The page's menu structure and the InnerTube read shape can change without notice. When removals start failing, the report's reasons name the broken step (menu misses, rows not dropping); reload the page and re-run the failures.
+- **Unofficial surface.** The page's menu structure and its data shapes can change without notice. When removals start failing, the report's reasons name the broken step (menu misses, rows not dropping); reload the page and re-run the failures.
 - **ToS.** Automating your own account at human speed for personal pruning is the same thing the many community userscripts do, but it is still outside YouTube's officially supported path. Use at your own judgment.
 - **Irreversible.** Removing a video from a playlist cannot be undone. That is what the dry-run toggle is for.
 - **Chrome/Edge only**, MV3 `world: "MAIN"` (Chrome 111+). Not tested on Firefox.
