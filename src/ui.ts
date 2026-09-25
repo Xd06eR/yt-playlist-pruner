@@ -211,7 +211,7 @@ export function confirmDialog(count: number, titles: string[]): Promise<boolean>
 }
 
 /** End-of-run report; offers a page reload whenever local state may have diverged. */
-export function reportDialog(report: RunReport, suggestReload: boolean): void {
+export function reportDialog(report: RunReport, suggestReload: boolean, caveat?: string): void {
   const removed = report.results.filter((r) => r.status === 'removed').length
   const wouldRemove = report.results.filter((r) => r.status === 'would-remove').length
   const failed = report.results.filter((r) => r.status === 'failed')
@@ -235,6 +235,11 @@ export function reportDialog(report: RunReport, suggestReload: boolean): void {
     ? `${wouldRemove} video${wouldRemove === 1 ? '' : 's'} would be removed.`
     : `${removed} removed, ${failed.length} failed.`
   modal.append(heading, summary)
+  if (caveat) {
+    const note = el('p')
+    note.textContent = caveat
+    modal.append(note)
+  }
   // The whole point of a dry run is seeing exactly what would go: every title,
   // in a scrollable list.
   if (report.dryRun && wouldRemove > 0) {
